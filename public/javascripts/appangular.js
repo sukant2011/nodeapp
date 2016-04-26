@@ -24,6 +24,10 @@ $scope.incrementUpvotes = function(post) {
   posts.upvote(post);
 };
 
+$scope.decrementVotes = function(post) {
+  posts.downvote(post);
+};
+
 }]);
 
 app.factory('posts', ['$http', 'auth', function($http, auth){
@@ -37,6 +41,7 @@ app.factory('posts', ['$http', 'auth', function($http, auth){
 
   o.getAll = function() {
     return $http.get('/posts').success(function(data){
+     
       angular.copy(data, o.posts);
     });
   };
@@ -61,6 +66,14 @@ o.upvote = function(post) {
     headers: {Authorization: 'Bearer '+auth.getToken()}
   }).success(function(data){
     post.upvotes += 1;
+  });
+};
+
+o.downvote = function(post) {
+  return $http.put('/posts/' + post._id + '/downvote', null, {
+    headers: {Authorization: 'Bearer '+auth.getToken()}
+  }).success(function(data){
+    post.downvotes += 1;
   });
 };
 
