@@ -6,6 +6,8 @@ app.controller('MainCtrl', [
 function($scope,posts,auth){
   $scope.test = 'Hello world!';
   $scope.posts = posts.posts;
+  $scope.checkPostClick = false;
+
 $scope.isLoggedIn = auth.isLoggedIn;
   $scope.addPost = function(){
     if(!$scope.title || $scope.title === '') { return; }
@@ -17,11 +19,17 @@ $scope.isLoggedIn = auth.isLoggedIn;
     $scope.link = '';
   };
 
-
+$scope.addToShow = function(){
+  $scope.checkPostClick = true;
+}
 
 
 $scope.incrementUpvotes = function(post) {
   posts.upvote(post);
+};
+
+$scope.decrementVotes = function(post) {
+  posts.downvote(post);
 };
 
 }]);
@@ -37,6 +45,7 @@ app.factory('posts', ['$http', 'auth', function($http, auth){
 
   o.getAll = function() {
     return $http.get('/posts').success(function(data){
+     
       angular.copy(data, o.posts);
     });
   };
@@ -64,7 +73,21 @@ o.upvote = function(post) {
   });
 };
 
+o.downvote = function(post) {
+  return $http.put('/posts/' + post._id + '/downvote', null, {
+    headers: {Authorization: 'Bearer '+auth.getToken()}
+  }).success(function(data){
+    if(data.mtype=='error'){
+      post.errMsg = data.message;
+    }else{
+      post.downvotes += 1;
+    }
+    
+  });
+};
+
 o.addComment = function(id, comment) {
+ 
   return $http.post('/posts/' + id + '/comments', comment, {
     headers: {Authorization: 'Bearer '+auth.getToken()}
   });
@@ -196,7 +219,7 @@ function($scope, posts, post, auth){
   if($scope.body === '') { return; }
   posts.addComment(post._id, {
     body: $scope.body,
-    author: 'user',
+    author: $scope.author,
   }).success(function(comment) {
     $scope.post.comments.push(comment);
   });
