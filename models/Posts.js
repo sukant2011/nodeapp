@@ -5,6 +5,7 @@ var PostSchema = new mongoose.Schema({
   link: String,
   upvotes: {type: Number, default: 0},
   downvotes: {type: Number, default: 0},
+  votes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Vote' }],
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }]
 });
 

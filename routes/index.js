@@ -3,6 +3,7 @@ var router = express.Router();
 var mongoose = require('mongoose');
 var Post = mongoose.model('Post');
 var Comment = mongoose.model('Comment');
+var Vote = mongoose.model('Vote');
 var passport = require('passport');
 var User = mongoose.model('User');
 var jwt = require('express-jwt');
@@ -57,7 +58,6 @@ router.post('/login', function(req, res, next){
 router.get('/posts', function(req, res, next) {
   Post.find(function(err, posts){
     if(err){ return next(err); }
-
     res.json(posts);
   });
 });
@@ -87,19 +87,52 @@ router.param('post', function(req, res, next, id) {
 
 
 router.put('/posts/:post/upvote', auth, function(req, res, next) {
-  req.post.upvote(function(err, post){
-    if (err) { return next(err); }
 
-    res.json(post);
-  });
+  var voteC = new Vote(req.body);
+
+  voteC.post = req.post;
+  voteC.user = req.payload;
+
+  voteC.save(function(err, voteC) {
+      if(err){ return next(err); }
+      req.post.votes.push(voteC);
+      req.post.upvote(function(err, post){
+        if (err) { return next(err); }
+        res.json(post);
+      });
+    });
+
+  
 });
 
 router.put('/posts/:post/downvote', auth, function(req, res, next) {
-  req.post.downvote(function(err, post){
-    if (err) { return next(err); }
+   var voteC = new Vote(req.body);
 
-    res.json(post);
+  voteC.post = req.post;
+  voteC.user = req.payload;
+  var flagCount = 0;
+  var query = Vote.findOne({'user':req.payload._id,'post':req.post});
+
+  query.exec(function (err, votecc){
+    if (err) { return next(err); }
+    if (!votecc) { 
+        voteC.save(function(err, voteC) {
+        if(err){ return next(err); }
+        req.post.votes.push(voteC);
+        req.post.downvote(function(err, post){
+          if (err) { return next(err); }
+          res.json({mtype:'success',post:post});
+        });
+      }); 
+    }else{ 
+      return res.status(200).json({message: 'Already Voted',mtype:'error'});
+    }
+    
   });
+
+
+
+  
 });
 
 
@@ -107,7 +140,7 @@ router.post('/posts/:post/comments', auth, function(req, res, next) {
   var comment = new Comment(req.body);
   comment.post = req.post;
 
-  comment.author = req.payload.username;
+  
   comment.save(function(err, comment){
     if(err){ return next(err); }
 
